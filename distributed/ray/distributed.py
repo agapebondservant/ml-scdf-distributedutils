@@ -27,9 +27,14 @@ class ScaledTaskController:
     def read_buffer(self, limit=None):
         if self.buffer:
             return self.buffer.take_all() if limit is None else self.buffer.take(limit=limit)
+        else:
+            return None
 
     def reset_buffer(self):
         self.buffer = None
+
+    def buffer_length(self):
+        return self.buffer.count() if self.buffer else 0
 
     def log_model(self, parent_run_id, model, flavor, **kwargs):
         logger.info(f"In log_model...run id = {parent_run_id}")
