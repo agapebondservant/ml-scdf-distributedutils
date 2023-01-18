@@ -15,6 +15,22 @@ logger = logging.getLogger('scaledtasks')
 @ray.remote(num_cpus=2, memory=40 * 1024 * 1024)
 class ScaledTaskController:
 
+    def __init__(self):
+        self.buffer = None
+
+    def append_buffer(self, obj):
+        if self.buffer is None:
+            self.buffer = ray.data.from_items([obj])
+        else:
+            self.buffer = self.buffer.union(obj)
+
+    def read_buffer(self, limit=None):
+        if self.buffer:
+            return self.buffer.take_all() if limit is None else self.buffer.take(limit=limit)
+
+    def reset_buffer(self):
+        self.buffer = None
+
     def log_model(self, parent_run_id, model, flavor, **kwargs):
         logger.info(f"In log_model...run id = {parent_run_id}")
         mlflow.set_tags({'mlflow.parentRunId': parent_run_id})
