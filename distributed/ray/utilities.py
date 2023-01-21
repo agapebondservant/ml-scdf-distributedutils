@@ -68,3 +68,8 @@ def mlflow_log_text(parent_run_id, **kwargs):
 def mlflow_generate_autolog_metrics(flavor=None):
     getattr(mlflow, flavor).autolog(log_models=False) if flavor is not None else mlflow.autolog(log_models=False)
 
+
+def text_to_numpy(textfile):
+    records = np.genfromtxt(textfile, delimiter=',')
+    return records
+
