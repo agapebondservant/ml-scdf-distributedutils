@@ -19,7 +19,7 @@ class ScaledTaskController:
         logger.info(f"In log_model...run id = {parent_run_id}")
         mlflow.set_tags({'mlflow.parentRunId': parent_run_id})
 
-        getattr(mlflow, flavor).log_model(model, flavor, **kwargs)
+        getattr(mlflow, flavor).log_model(model, **kwargs)
 
         logger.info("Logging was successful.")
 
