@@ -19,7 +19,7 @@ class ScaledTaskController:
         logger.info(f"In log_model...run id = {parent_run_id}")
         mlflow.set_tags({'mlflow.parentRunId': parent_run_id})
 
-        getattr(mlflow, flavor).log_model(model, **kwargs)
+        getattr(mlflow, flavor).log_model(model, flavor, **kwargs)
 
         logger.info("Logging was successful.")
 
@@ -122,8 +122,9 @@ class ScaledTaskController:
             logger.info("Candidate model promoted successfully.")
 
             logging.info("Updating baseline model...")
-            self.log_model(candidate_model,
-                           parent_run_id,
+            self.log_model(parent_run_id,
+                           candidate_model,
+                           flavor,
                            registered_model_name='baseline_model',
                            await_registration_for=None)
 
