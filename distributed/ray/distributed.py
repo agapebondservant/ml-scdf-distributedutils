@@ -89,7 +89,7 @@ class ScaledTaskController:
         utilities.mlflow_generate_autolog_metrics(flavor=flavor)
 
     def evaluate_models(self, parent_run_id, flavor, baseline_model=None, candidate_model=None, data=None,
-                        version=None):
+                        version=None, baseline_model_name='baseline_model'):
         mlflow.set_tags({'mlflow.parentRunId': parent_run_id})
         logger.info(f"In evaluate_models...run id = {parent_run_id}")
         try:
@@ -114,7 +114,7 @@ class ScaledTaskController:
             logger.info("Candidate model passed evaluation; promoting to Staging...")
 
             client.transition_model_version_stage(
-                name="baseline_model",
+                name=baseline_model_name,
                 version=version,
                 stage="Staging"
             )
@@ -125,7 +125,8 @@ class ScaledTaskController:
             self.log_model(parent_run_id,
                            candidate_model,
                            flavor,
-                           registered_model_name='baseline_model',
+                           artifact_path=flavor,
+                           registered_model_name=baseline_model_name,
                            await_registration_for=None)
 
             logger.info("Evaluation complete.")

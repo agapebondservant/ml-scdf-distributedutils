@@ -1,26 +1,11 @@
-import os
-import sys
-from collections import defaultdict
 import logging
-import traceback
 import joblib
-import tempfile
 import mlflow
-import json
-import pandas as pd
-from os.path import exists
-from datetime import datetime, timedelta, timezone
-import pytz
-from evidently.test_suite import TestSuite
-from evidently.test_preset import DataQualityTestPreset
-from mlmetrics import exporter
 import numpy as np
-import re
 from mlflow import MlflowClient
-from prodict import Prodict
-from multiprocessing import Process, Lock
-from filelock import FileLock, Timeout
-from mlflow.models import MetricThreshold
+import pandas as pd
+import os
+import re
 
 
 def mlflow_log_artifact(parent_run_id, artifact, local_path, **kwargs):
@@ -29,7 +14,6 @@ def mlflow_log_artifact(parent_run_id, artifact, local_path, **kwargs):
 
     with open(local_path, "wb") as artifact_handle:
         joblib.dump(artifact, artifact_handle)
-    # synchronize_file_write(file=artifact, file_path=local_path)
     MlflowClient().log_artifact(parent_run_id, local_path, **kwargs)
     logging.info("Logging was successful.")
 
@@ -65,6 +49,15 @@ def mlflow_log_text(parent_run_id, **kwargs):
     logging.info("Logging was successful.")
 
 
+def mlflow_log_metric(parent_run_id, **kwargs):
+    logging.info(f"In log_metric...run id = {parent_run_id}")
+    mlflow.set_tags({'mlflow.parentRunId': parent_run_id})
+
+    MlflowClient().log_metric(parent_run_id, **kwargs)
+
+    logging.info("Logging was successful.")
+
+
 def mlflow_generate_autolog_metrics(flavor=None):
     getattr(mlflow, flavor).autolog(log_models=False) if flavor is not None else mlflow.autolog(log_models=False)
 
@@ -72,4 +65,39 @@ def mlflow_generate_autolog_metrics(flavor=None):
 def text_to_numpy(textfile):
     records = np.genfromtxt(textfile, delimiter=',')
     return records
+
+
+def get_root_run_id(experiment_names=['Default']):
+    runs = mlflow.search_runs(experiment_names=experiment_names, filter_string="tags.runlevel='root'", max_results=1,
+                              output_format='list')
+    logging.debug(f"Parent run is...{runs}")
+    return runs[0].info.run_id if len(runs) else None
+
+
+def get_next_rolling_window(current_dataset, num_shifts):
+    if not len(current_dataset):
+        logging.error("Error: Cannot get the next rolling window for an empty dataset")
+    else:
+        new_dataset = pd.concat(
+            [current_dataset[num_shifts % len(current_dataset):], current_dataset[:num_shifts % len(current_dataset)]])
+        new_dataset.index = current_dataset.index + (current_dataset.index.freq * num_shifts)
+        return new_dataset
+
+
+def filter_rows_by_head_or_tail(df, head=True, num_rows_in_head=None, num_rows_in_tail=None):
+    if (num_rows_in_head is not None) != (num_rows_in_tail is not None):
+        raise ValueError(
+            f"Exactly one of num_rows_head({num_rows_in_head}) and num_rows_tail({num_rows_in_tail}) must be passed, not both")
+    if num_rows_in_head is not None:
+        return df[:num_rows_in_head] if head else df[num_rows_in_head:]
+    else:
+        return df[:-num_rows_in_tail] if head else df[-num_rows_in_tail:]
+
+
+def get_env_var(name):
+    if name in os.environ:
+        value = os.environ[name]
+        return int(value) if re.match("\d+$", value) else value
+    else:
+        logging.info('Unknown environment variable requested: {}'.format(name))
 
