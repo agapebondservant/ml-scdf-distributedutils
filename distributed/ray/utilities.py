@@ -71,7 +71,12 @@ def get_root_run_id(experiment_names=['Default']):
     runs = mlflow.search_runs(experiment_names=experiment_names, filter_string="tags.runlevel='root'", max_results=1,
                               output_format='list')
     logging.debug(f"Parent run is...{runs}")
-    return runs[0].info.run_id if len(runs) else None
+    root_run_id = runs[0].info.run_id if len(runs) else None
+    if root_run_id is not None:
+        mlflow.set_tags({'mlflow.parentRunId': root_run_id})
+    else:
+        mlflow.set_tags({'runlevel': 'root'})
+    return root_run_id
 
 
 def get_next_rolling_window(current_dataset, num_shifts):
