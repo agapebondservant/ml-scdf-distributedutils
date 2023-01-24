@@ -76,6 +76,8 @@ def get_root_run_id(experiment_names=['Default']):
         mlflow.set_tags({'mlflow.parentRunId': root_run_id})
     else:
         mlflow.set_tags({'runlevel': 'root'})
+        last_active_run = mlflow.last_active_run()
+        root_run_id = last_active_run.info.run_id if last_active_run else None
     return root_run_id
 
 
